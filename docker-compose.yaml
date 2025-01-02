@@ -8,6 +8,8 @@ services:
         stop_grace_period: 10s
         stop_signal: SIGTERM
         privileged: true
+        volumes:
+            - ./data/piston/packages:/piston/packages
         environment:
             - PISTON_DISABLE_NETWORKING=false
             - PISTON_RUN_TIMEOUT=300000
