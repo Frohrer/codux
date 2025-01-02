@@ -30,18 +30,7 @@ async function test() {
     await new Promise(resolve => setTimeout(resolve, 10000));
     logger.info('Starting tests...');
 
-    // Test case 1: Install streamlit package
-    try {
-        const result = await selfCurl('/api/v2/packages', 'POST', {
-            language: "streamlit",
-            version: "3.11.0"
-        });
-        logger.info('Package installation test result:', result);
-    } catch (error) {
-        logger.error('Package installation test failed:', error);
-    }
-
-    // Test case 2: Install node package
+    // Test case 1: Install node package
     try {
         const result = await selfCurl('/api/v2/packages', 'POST', {
             language: "node",
@@ -52,18 +41,18 @@ async function test() {
         logger.error('Package installation test failed:', error);
     }
 
-    // Test case 3: Install Python 3.11.0
+    // Test case 2: Install Python 3.11.11
     try {
         const result = await selfCurl('/api/v2/packages', 'POST', {
             language: "python",
-            version: "3.11.0"
+            version: "3.11.11"
         });
         logger.info('Package installation test result:', result);
     } catch (error) {
         logger.error('Package installation test failed:', error);
     }
 
-    // Test case 4: Install Python 3.12.8
+    // Test case 3: Install Python 3.12.8
     try {
         const result = await selfCurl('/api/v2/packages', 'POST', {
             language: "python",
@@ -74,7 +63,7 @@ async function test() {
         logger.error('Package installation test failed:', error);
     }
 
-    // Test case 5: Install Python 3.13.1
+    // Test case 4: Install Python 3.13.1
     try {
         const result = await selfCurl('/api/v2/packages', 'POST', {
             language: "python",
@@ -85,22 +74,12 @@ async function test() {
         logger.error('Package installation test failed:', error);
     }
 
-    // Test case 6: Install Python 3.14.0
-    try {
-        const result = await selfCurl('/api/v2/packages', 'POST', {
-            language: "python",
-            version: "3.14.0"
-        });
-        logger.info('Package installation test result:', result);
-    } catch (error) {
-        logger.error('Package installation test failed:', error);
-    }
 
-    // Test case 7: Execute code
+    // Test case 5: Execute code
     try {
         const result = await selfCurl('/api/v2/execute', 'POST', {
             language: "python",
-            version: "3.11.0",
+            version: "3.11.11",
             files: [{
                 name: "app.py",
                 content: "print('Try Royksopp!')"

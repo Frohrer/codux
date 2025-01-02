@@ -17,21 +17,18 @@ services:
         ports:
             - "2000:2000"
             - "2020:2020"
-        volumes:
-            - ./data/piston/packages:/piston/packages
         networks:
             - piston-network
-
     repo:
         build: ./piston/repo/.
         container_name: piston_repo
-        volumes:
-            - .:/piston
+        privileged: true
         ports:
             - "8000:8000"
         networks:
             - piston-network
-
+        volumes:
+            - piston_repo_data:/app/packages
     ui:
         build: ./ui/
         container_name: piston_ui
@@ -45,3 +42,6 @@ services:
 networks:
     piston-network:
         driver: bridge
+
+volumes:
+    piston_repo_data:
