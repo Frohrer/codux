@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# Ensure the home directory is set up correctly
+export HOME=/box/submission/home
+export STREAMLIT_HOME=$HOME/.streamlit
+
+# Create Streamlit config directory and config file
+mkdir -p $STREAMLIT_HOME
+cat > $STREAMLIT_HOME/config.toml << EOF
+[server]
+port = ${PORT:-10001}
+headless = true
+enableCORS = false
+enableXsrfProtection = false
+
+[browser]
+gatherUsageStats = false
+EOF
+
+cd /box/submission || exit 1
+
+# Ensure the argument has `.py` extension
+FILE="${1%.py}.py"
+
+# Run Streamlit
+streamlit run "$@" --logger.level=info 2>&1 | tee /tmp/streamlit.log

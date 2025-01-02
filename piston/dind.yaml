@@ -1,0 +1,12 @@
+version: '3.2'
+
+services:
+    api:
+        build: ./
+        container_name: piston_dind
+        restart: no
+        cgroup: host
+        privileged: true
+        ports:
+            - 8000:8000
+            - 2000:2000

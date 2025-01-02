@@ -1,0 +1,405 @@
+openapi: 3.0.0
+info:
+  title: Code Execution API
+  version: "2.0.0"
+  description: API for executing code in various programming languages and managing runtime packages
+
+servers:
+  - url: /api/v2
+
+components:
+  schemas:
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+
+    Runtime:
+      type: object
+      properties:
+        language:
+          type: string
+        version:
+          type: string
+        aliases:
+          type: array
+          items:
+            type: string
+        runtime:
+          type: string
+
+    Package:
+      type: object
+      properties:
+        language:
+          type: string
+        language_version:
+          type: string
+        installed:
+          type: boolean
+
+    TimingReport:
+      type: object
+      properties:
+        jobId:
+          type: string
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        totalDuration:
+          type: number
+          description: Total duration in milliseconds
+        stages:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+                enum: [compile, install, execute]
+              startTime:
+                type: string
+                format: date-time
+              endTime:
+                type: string
+                format: date-time
+              duration:
+                type: number
+              cpuTime:
+                type: number
+              wallTime:
+                type: number
+              memory:
+                type: number
+        metrics:
+          type: object
+          properties:
+            cpuTime:
+              type: number
+            wallTime:
+              type: number
+            memory:
+              type: number
+
+    ExecutionRequest:
+      type: object
+      required:
+        - language
+        - version
+        - files
+      properties:
+        language:
+          type: string
+        version:
+          type: string
+        dependencies:
+          type: array
+          items:
+            type: string
+        args:
+          type: array
+          items:
+            type: string
+        stdin:
+          type: string
+        files:
+          type: array
+          items:
+            type: object
+            required:
+              - name
+              - content
+            properties:
+              name:
+                type: string
+                description: Name of the file
+              content:
+                type: string
+                description: Content of the file
+              encoding:
+                type: string
+                description: Encoding of the file content (defaults to utf8 if not specified)
+        compile_memory_limit:
+          type: number
+        run_memory_limit:
+          type: number
+        run_timeout:
+          type: number
+        compile_timeout:
+          type: number
+        run_cpu_time:
+          type: number
+        compile_cpu_time:
+          type: number
+
+    ExecutionResponse:
+      type: object
+      properties:
+        stages:
+          type: object
+          properties:
+            install:
+              type: object
+              properties:
+                stdout:
+                  type: string
+                stderr:
+                  type: string
+            execute:
+              type: object
+              properties:
+                stdout:
+                  type: string
+                stderr:
+                  type: string
+        webAppUrl:
+          type: string
+        execution_id:
+          type: string
+        timing:
+          $ref: "#/components/schemas/TimingReport"
+
+    ProcessInfo:
+      type: object
+      properties:
+        id:
+          type: string
+        language:
+          type: string
+        version:
+          type: string
+        webAppUrl:
+          type: string
+        startTime:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [running, completed, failed, terminated]
+        timing:
+          $ref: "#/components/schemas/TimingReport"
+
+paths:
+  /execute:
+    post:
+      summary: Execute code
+      description: Execute code in the specified programming language
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExecutionRequest"
+      responses:
+        "200":
+          description: Successful execution
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExecutionResponse"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /connect:
+    get:
+      summary: WebSocket connection endpoint
+      description: Establish WebSocket connection for real-time code execution
+      responses:
+        "101":
+          description: WebSocket connection established
+
+  /process:
+    get:
+      summary: List all running processes
+      responses:
+        "200":
+          description: List of running processes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                  processes:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ProcessInfo"
+
+  /process/{id}:
+    get:
+      summary: Get process information
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Process information
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProcessInfo"
+        "404":
+          description: Process not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    delete:
+      summary: Terminate a running process
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Process terminated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Process not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /process/{id}/timing:
+    get:
+      summary: Get detailed timing information for a process
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Process timing information
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimingReport"
+        "404":
+          description: Process not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /runtimes:
+    get:
+      summary: List available runtimes
+      responses:
+        "200":
+          description: List of available runtimes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Runtime"
+
+  /packages:
+    get:
+      summary: List available packages
+      responses:
+        "200":
+          description: List of available packages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Package"
+
+    post:
+      summary: Install a package
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - language
+                - version
+              properties:
+                language:
+                  type: string
+                version:
+                  type: string
+      responses:
+        "200":
+          description: Package installed successfully
+        "404":
+          description: Package not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Installation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    delete:
+      summary: Uninstall a package
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - language
+                - version
+              properties:
+                language:
+                  type: string
+                version:
+                  type: string
+      responses:
+        "200":
+          description: Package uninstalled successfully
+        "404":
+          description: Package not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Uninstallation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"

@@ -1,0 +1,43 @@
+# Use an official Docker image as the base image
+FROM docker:26-dind
+
+# Set up working directory
+WORKDIR /app
+
+# Copy the project files into the container
+COPY . .
+
+# Make the piston script executable
+RUN chmod +x piston
+RUN find . -type f -name "*.sh" -exec chmod +x {} \;
+
+# Expose the ports
+EXPOSE 8000
+EXPOSE 2000
+EXPOSE 2020
+
+# Install bash
+RUN apk add --no-cache bash
+
+# Copy and make start.sh executable
+COPY start.sh start.sh
+RUN chmod +x start.sh
+
+# Create the Docker daemon configuration directory
+RUN mkdir -p /etc/docker
+
+# Create the daemon.json file with cgroup v2 configuration
+RUN echo '{ \
+    "exec-opts": ["native.cgroupdriver=cgroupfs"], \
+    "experimental": true, \
+    "features": { \
+    "cgroupv2": true \
+    } \
+    }' > /etc/docker/daemon.json
+
+# Copy and make entrypoint.sh executable
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# Set the entrypoint
+ENTRYPOINT ["/entrypoint.sh"]

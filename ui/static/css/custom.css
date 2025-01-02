@@ -1,0 +1,64 @@
+/* Custom styling on top of Bootstrap dark theme */
+
+pre {
+    background-color: var(--bs-dark);
+    color: var(--bs-light);
+    border-radius: 0.25rem;
+    margin: 0;
+}
+
+.card {
+    background-color: var(--bs-dark);
+    border: 1px solid rgba(255, 255, 255, 0.125);
+}
+
+.table {
+    margin-bottom: 0;
+}
+
+canvas {
+    width: 100% !important;
+    height: 300px !important;
+}
+
+.modal-content {
+    background-color: var(--bs-dark);
+    border: 1px solid rgba(255, 255, 255, 0.125);
+}
+
+.modal-header {
+    border-bottom-color: rgba(255, 255, 255, 0.125);
+}
+
+.modal-footer {
+    border-top-color: rgba(255, 255, 255, 0.125);
+}
+
+/* Add hover effect to table rows */
+.table tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Sorting indicators */
+.sort-header i.fas {
+    opacity: 0.5;
+    transition: opacity 0.2s;
+}
+
+.sort-header:hover i.fas,
+.sort-header.active i.fas {
+    opacity: 1;
+}
+
+.sort-header.asc i.fas {
+    transform: rotate(180deg);
+}
+
+/* Button enhancements */
+.btn {
+    padding: 0.5rem 1rem;
+}
+
+.btn i {
+    margin-right: 0.5rem;
+}
