@@ -1,6 +1,7 @@
 */*/*
 *.pkg.tar.gz
 !*/*/metadata.json
+!*/*/packagemanager
 !*/*/build.sh
 !*/*/environment
 !*/*/run
