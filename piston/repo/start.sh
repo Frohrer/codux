@@ -9,6 +9,3 @@ set -e
 ./piston build-pkg python 3.13.1
 ./piston build-pkg python 3.14.0
 # ./piston build-pkg bash 5.2.0
-
-# Start docker-compose
-exec docker-compose up

@@ -86,7 +86,7 @@ case $1 in
         BUILDER="${4:-piston-repo-builder}"
         echo "Building $PKGSLUG"
         echo "Ensuring latest builder image"
-        docker build -f repo/package-install.dockerfile repo -t "$BUILDER"
+        docker build -f package-install.dockerfile repo -t "$BUILDER"
         POSIX_PWD=$(echo "$PWD" | sed -e 's/\\/\//g' -e 's/://')
         docker run --rm -v "/$POSIX_PWD:/piston" "$BUILDER" --no-server "$PKGSLUG"
         ;;
