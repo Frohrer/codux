@@ -4,6 +4,9 @@ SERVER=1
 BUILD=1
 CI=0
 
+echo "Installing packages"
+./install.sh
+
 echo "Creating index"
 chmod +x ./mkindex.sh
 # ./mkindex.sh

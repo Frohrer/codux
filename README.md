@@ -12,6 +12,31 @@ codux extends the Piston engine to create a secure platform for executing public
 - Comprehensive API
 - Local execution - your code never leaves your machine
 
+## Getting Started
+
+1. **Clone the Repository**
+
+   ```bash
+   git clone https://github.com/frohrer/codux.git
+   cd codux
+   ```
+
+2. **Start the Service**
+
+   ```bash
+   docker compose up -d
+   ```
+
+3. **Access the Services**
+
+   - API Endpoint: `http://localhost:2000`
+   - Web Interface: `http://localhost:8080`
+
+4. **Verify Installation**
+   ```bash
+   curl http://localhost:2000/health
+   ```
+
 ## Security
 
 _Documentation in progress_
