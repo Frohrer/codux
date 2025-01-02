@@ -5,7 +5,7 @@ i=0
 
 echo "" > index
 
-for pkg in $(find ../packages -type f -name "*.pkg.tar.gz")
+for pkg in $(find ./packages -type f -name "*.pkg.tar.gz")
 do
     
     cp $pkg .
