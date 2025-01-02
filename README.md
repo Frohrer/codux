@@ -14,6 +14,8 @@ codux extends the Piston engine to create a secure platform for executing public
 
 ## Getting Started
 
+codux will build all supported runtimes on first startup, therefore expect a 5-10 minute wait the first time you run it.
+
 1. **Clone the Repository**
 
    ```bash
