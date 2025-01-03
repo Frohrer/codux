@@ -9,41 +9,24 @@ tar xf node.tar.xz --strip-components=1
 # Clean up the archive
 rm node.tar.xz
 
-# Ensure npm and npx are executable
-chmod +x lib/node_modules/npm/bin/npm-cli.js
-chmod +x lib/node_modules/npm/bin/npx-cli.js
+# Create npmrc that forces npm to use local paths
+cat > lib/node_modules/npm/npmrc << EOF
+prefix=\${PWD}
+cache=\${PWD}/cache
+tmp=\${PWD}/tmp
+init-module=\${PWD}/.npm-init.js
+userconfig=\${PWD}/npmrc
+EOF
 
-# Create directories npm needs
-mkdir -p tmp
-mkdir -p home/.npm
-
-# Create npm and npx shell scripts in bin/ that set all necessary environment variables
+# Create the npm wrapper that sets up the environment before invoking npm
 cat > bin/npm << 'EOF'
 #!/bin/bash
-DIR="$(dirname "$(dirname "${BASH_SOURCE[0]}")")"
-export HOME="$DIR/home"
-export npm_config_userconfig="$DIR/home/.npmrc"
-export npm_config_cache="$DIR/home/.npm"
-export npm_config_tmp="$DIR/tmp"
-export npm_config_prefix="$DIR"
-export NODE_PATH="$DIR/lib/node_modules"
-"$DIR/bin/node" "$DIR/lib/node_modules/npm/bin/npm-cli.js" "$@"
+export npm_config_userconfig="$PWD/lib/node_modules/npm/npmrc"
+export HOME="$PWD"
+"$PWD/bin/node" "$PWD/lib/node_modules/npm/bin/npm-cli.js" "$@"
 EOF
 
-cat > bin/npx << 'EOF'
-#!/bin/bash
-DIR="$(dirname "$(dirname "${BASH_SOURCE[0]}")")"
-export HOME="$DIR/home"
-export npm_config_userconfig="$DIR/home/.npmrc"
-export npm_config_cache="$DIR/home/.npm"
-export npm_config_tmp="$DIR/tmp"
-export npm_config_prefix="$DIR"
-export NODE_PATH="$DIR/lib/node_modules"
-"$DIR/bin/node" "$DIR/lib/node_modules/npm/bin/npx-cli.js" "$@"
-EOF
+chmod +x bin/npm
 
-# Make the shell scripts executable
-chmod +x bin/npm bin/npx
-
-# Create empty .npmrc to prevent npm from trying to create it
-touch home/.npmrc
+# Create necessary directories that npm will try to use
+mkdir -p cache tmp
