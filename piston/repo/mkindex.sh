@@ -5,10 +5,10 @@ i=0
 
 echo "" > index
 
-for pkg in $(find ./packages -type f -name "*.pkg.tar.gz")
+for pkg in $(find . -type f -name "*.pkg.tar.gz")
 do
     
-    cp $pkg .
+    # cp $pkg .
 
     PKGFILE=$(basename $pkg)
     PKGFILENAME=$(echo $PKGFILE | sed 's/\.pkg\.tar\.gz//g')
