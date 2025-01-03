@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
-
+chmod +x ./piston/repo/piston
 # Build packages
 ./piston/repo/piston build-pkg node 20.11.1
 ./piston/repo/piston build-pkg python 3.11.11
