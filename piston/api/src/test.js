@@ -41,10 +41,10 @@ async function test() {
 		logger.error("Package installation test failed:", error);
 	}
 
-	// Test case x: Install Python 3.11.0
+	// Test case x: Install Streamlit 3.11.0
 	try {
 		const result = await selfCurl("/api/v2/packages", "POST", {
-			language: "python",
+			language: "streamlit",
 			version: "3.11.0",
 		});
 		logger.info("Package installation test result:", result);

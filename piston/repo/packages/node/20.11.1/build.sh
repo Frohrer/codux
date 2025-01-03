@@ -13,18 +13,37 @@ rm node.tar.xz
 chmod +x lib/node_modules/npm/bin/npm-cli.js
 chmod +x lib/node_modules/npm/bin/npx-cli.js
 
-# Create npm and npx shell scripts in bin/ that use the local node installation
+# Create directories npm needs
+mkdir -p tmp
+mkdir -p home/.npm
+
+# Create npm and npx shell scripts in bin/ that set all necessary environment variables
 cat > bin/npm << 'EOF'
 #!/bin/bash
 DIR="$(dirname "$(dirname "${BASH_SOURCE[0]}")")"
+export HOME="$DIR/home"
+export npm_config_userconfig="$DIR/home/.npmrc"
+export npm_config_cache="$DIR/home/.npm"
+export npm_config_tmp="$DIR/tmp"
+export npm_config_prefix="$DIR"
+export NODE_PATH="$DIR/lib/node_modules"
 "$DIR/bin/node" "$DIR/lib/node_modules/npm/bin/npm-cli.js" "$@"
 EOF
 
 cat > bin/npx << 'EOF'
 #!/bin/bash
 DIR="$(dirname "$(dirname "${BASH_SOURCE[0]}")")"
+export HOME="$DIR/home"
+export npm_config_userconfig="$DIR/home/.npmrc"
+export npm_config_cache="$DIR/home/.npm"
+export npm_config_tmp="$DIR/tmp"
+export npm_config_prefix="$DIR"
+export NODE_PATH="$DIR/lib/node_modules"
 "$DIR/bin/node" "$DIR/lib/node_modules/npm/bin/npx-cli.js" "$@"
 EOF
 
 # Make the shell scripts executable
 chmod +x bin/npm bin/npx
+
+# Create empty .npmrc to prevent npm from trying to create it
+touch home/.npmrc

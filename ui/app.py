@@ -89,7 +89,14 @@ def get_process_info(process_id):
 def terminate_process(process_id):
     """Terminate a running process."""
     try:
-        response = requests.delete(f'{API_BASE}/process/{process_id}', timeout=5)
+        headers = {
+            'Content-Type': 'application/json'
+        }
+        response = requests.delete(
+            f'{API_BASE}/process/{process_id}',
+            headers=headers,
+            timeout=5
+        )
         response.raise_for_status()
         return jsonify({"message": "Process terminated successfully"})
     except requests.exceptions.ConnectionError as e:
