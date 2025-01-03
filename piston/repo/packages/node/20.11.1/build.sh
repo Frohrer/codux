@@ -9,24 +9,11 @@ tar xf node.tar.xz --strip-components=1
 # Clean up the archive
 rm node.tar.xz
 
-# Create npmrc that forces npm to use local paths
-cat > lib/node_modules/npm/npmrc << EOF
-prefix=\${PWD}
-cache=\${PWD}/cache
-tmp=\${PWD}/tmp
-init-module=\${PWD}/.npm-init.js
-userconfig=\${PWD}/npmrc
-EOF
-
-# Create the npm wrapper that sets up the environment before invoking npm
+# Create minimal npm script that just passes args to npm-cli.js
 cat > bin/npm << 'EOF'
 #!/bin/bash
-export npm_config_userconfig="$PWD/lib/node_modules/npm/npmrc"
-export HOME="$PWD"
-"$PWD/bin/node" "$PWD/lib/node_modules/npm/bin/npm-cli.js" "$@"
+DIR="$(dirname "$(dirname "$0")")"
+"$DIR/bin/node" "$DIR/lib/node_modules/npm/bin/npm-cli.js" "$@"
 EOF
 
 chmod +x bin/npm
-
-# Create necessary directories that npm will try to use
-mkdir -p cache tmp
