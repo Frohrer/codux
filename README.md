@@ -23,18 +23,26 @@ codux will build all supported runtimes on first startup, therefore expect a 5-1
    cd codux
    ```
 
-2. **Start the Service**
+2. **Build Runtimes**
+   You only have to do this once.
+
+   ```bash
+   chmod +x install.sh
+   ./install.sh
+   ```
+
+3. **Start the Service**
 
    ```bash
    docker compose up -d
    ```
 
-3. **Access the Services**
+4. **Access the Services**
 
    - API Endpoint: `http://localhost:2000`
    - Web Interface: `http://localhost:8080`
 
-4. **Verify Installation**
+5. **Verify Installation**
    ```bash
    curl http://localhost:2000/health
    ```
@@ -45,17 +53,31 @@ _Documentation in progress_
 
 ## Supported Languages
 
-| Language   | Version | Runtime   |
-| ---------- | ------- | --------- |
-| JavaScript | 20.11.1 | node      |
-| Python     | 3.9.4   | python    |
-| Python     | 3.10.0  | python    |
-| Python     | 3.11.0  | python    |
-| Python     | 3.11.0  | streamlit |
-| Python     | 3.11.11 | python    |
-| Python     | 3.12.8  | python    |
-| Python     | 3.13.1  | python    |
-| Python     | 3.14.0  | python    |
+| Language   | Version | Runtime    | Installed by default |
+| ---------- | ------- | ---------- | -------------------- |
+| javascript | 20.11.1 | node       | ✅                   |
+| javascript | 15.10.0 | node       | ❌                   |
+| javascript | 16.3.0  | node       | ❌                   |
+| javascript | 18.15.0 | node       | ❌                   |
+| python     | 2.7.18  | python     | ❌                   |
+| python     | 3.5.10  | python     | ❌                   |
+| python     | 3.9.1   | python     | ❌                   |
+| python     | 3.9.4   | python     | ❌                   |
+| python     | 3.10.0  | python     | ❌                   |
+| python     | 3.11.11 | python     | ✅                   |
+| python     | 3.11.0  | streamlit  | ✅                   |
+| python     | 3.12.8  | python     | ❌                   |
+| python     | 3.13.1  | python     | ❌                   |
+| bash       | 5.2.0   | bash       | ✅                   |
+| go         | 1.16.2  | go         | ✅                   |
+| typescript | 4.2.3   | typescript | ❌                   |
+| typescript | 5.0.3   | typescript | ✅                   |
+| rust       | 1.50.0  | rust       | ❌                   |
+| rust       | 1.56.1  | rust       | ❌                   |
+| rust       | 1.62.0  | rust       | ❌                   |
+| rust       | 1.63.0  | rust       | ❌                   |
+| rust       | 1.65.0  | rust       | ❌                   |
+| rust       | 1.68.2  | rust       | ✅                   |
 
 ## Status
 
