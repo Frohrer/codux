@@ -15,6 +15,7 @@ chmod +x lib/node_modules/npm/bin/npm-cli.js
 # Create the npm binary that sets HOME to the sandbox directory
 cat > bin/npm << 'EOF'
 #!/bin/bash
+mkdir -p /box/submission
 export HOME=/box/submission
 node "$PWD/lib/node_modules/npm/bin/npm-cli.js" "$@"
 EOF
