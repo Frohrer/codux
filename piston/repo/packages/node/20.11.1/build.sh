@@ -9,11 +9,13 @@ tar xf node.tar.xz --strip-components=1
 # Clean up the archive
 rm node.tar.xz
 
-# Create minimal npm script that just passes args to npm-cli.js
+# Make the npm cli executable 
+chmod +x lib/node_modules/npm/bin/npm-cli.js
+
+# Create the npm binary that the packagemanager will call
 cat > bin/npm << 'EOF'
 #!/bin/bash
-DIR="$(dirname "$(dirname "$0")")"
-"$DIR/bin/node" "$DIR/lib/node_modules/npm/bin/npm-cli.js" "$@"
+node "$PWD/lib/node_modules/npm/bin/npm-cli.js" "$@"
 EOF
 
 chmod +x bin/npm
