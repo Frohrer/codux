@@ -12,9 +12,10 @@ rm node.tar.xz
 # Make the npm cli executable 
 chmod +x lib/node_modules/npm/bin/npm-cli.js
 
-# Create the npm binary that the packagemanager will call
+# Create the npm binary that sets HOME to the sandbox directory
 cat > bin/npm << 'EOF'
 #!/bin/bash
+export HOME=/box/submission
 node "$PWD/lib/node_modules/npm/bin/npm-cli.js" "$@"
 EOF
 
