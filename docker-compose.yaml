@@ -16,6 +16,7 @@ services:
             - PISTON_REPO_URL=http://piston_repo:8000/index
             - PISTON_LOG_LEVEL=DEBUG
             - PISTON_MAX_FILE_SIZE=500000000 # 500 MB
+            - PISTON_PROXY_DOMAIN=https://code-proxy.frohrer.com
         ports:
             - "2000:2000"
             - "2020:2020"
