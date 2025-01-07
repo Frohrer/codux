@@ -70,7 +70,6 @@ class StreamlitErrorMonitor {
 				errorMessage = "Python Error: ";
 				continue;
 			}
-
 			if (inTraceback) {
 				if (line.match(/^\s*File/)) continue;
 				if (line.trim().length > 0) {
@@ -83,4 +82,5 @@ class StreamlitErrorMonitor {
 	}
 }
 
-module.exports = { StreamlitErrorMonitor };
+// Export the class directly
+module.exports = StreamlitErrorMonitor;
