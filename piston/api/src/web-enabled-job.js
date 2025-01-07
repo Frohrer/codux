@@ -4,6 +4,7 @@ const path = require("path");
 const { jobTimer } = require("./timing");
 const { processHistory } = require("./process-history");
 const EventEmitter = require("events");
+const StreamlitErrorMonitor = require("./streamlit-error-monitor");
 
 // Import the ProxyManager class (exported as a singleton in your code).
 const ProxyManager = require("./proxy-handler");
@@ -157,40 +158,24 @@ class WebEnabledJob extends Job {
 			const originalSafeCall = this.safe_call;
 
 			if (isStreamlit) {
-				this.logger.debug("Starting Streamlit process");
-
-				this.processPromise = originalSafeCall.call(
-					this,
-					box,
-					"run",
-					this.args,
-					22200000, // 6.1 hour time limit on streamlits (wall time)
-					21600000, // 6 hour time limit on CPU execution
-					this.memory_limits.run,
-					localEventBus,
-					{ env: combinedEnv }
-				);
+				const monitor = new StreamlitErrorMonitor(this);
 
 				try {
-					this.logger.debug("Waiting for Streamlit server to be ready");
-					const { stdout, stderr } = await this.waitForStreamlitServer(localEventBus);
+					await monitor.monitorStreamlitOutput(localEventBus);
 
-					return {
-						run: {
-							code: 0,
-							signal: null,
-							stdout,
-							stderr,
-							output: stdout + stderr,
-							memory: null,
-							message: "Streamlit server started",
-							status: "success",
-							webAppUrl: this.proxyPath,
-						},
-						language: this.runtime.language,
-						version: this.runtime.version.raw,
-					};
+					this.processPromise = originalSafeCall.call(
+						this,
+						box,
+						"run",
+						this.args,
+						22200000, // 6.1 hour time limit
+						21600000, // 6 hour CPU time limit
+						this.memory_limits.run,
+						localEventBus,
+						{ env: this.additionalEnvVars }
+					);
 				} catch (error) {
+					this.logger.error(`Streamlit error detected: ${error.message}`);
 					if (this.proxyPath) {
 						proxyManager.removeProxy(this.uuid);
 					}

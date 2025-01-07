@@ -66,6 +66,18 @@ class ProxyManager {
 					headers: proxyReq.getHeaders(),
 				});
 			},
+			onError: (err, req, res) => {
+				logger.error(`Proxy error for job ${jobId}:`, err);
+				res.writeHead(502, {
+					"Content-Type": "text/plain",
+				});
+				res.end(`Streamlit application error: ${err.message}`);
+			},
+			onProxyRes: (proxyRes, req, res) => {
+				if (proxyRes.statusCode >= 400) {
+					logger.error(`Streamlit error response: ${proxyRes.statusCode}`);
+				}
+			},
 		});
 
 		this.app.use(proxy);
