@@ -4,26 +4,14 @@ const path = require("path");
 const { jobTimer } = require("./timing");
 const { processHistory } = require("./process-history");
 const EventEmitter = require("events");
-const StreamlitErrorMonitor = require("./streamlit-error-monitor");
-
-// Import the ProxyManager class (exported as a singleton in your code).
+const PortDetector = require("./port-detector");
 const ProxyManager = require("./proxy-handler");
-const proxyManager = new ProxyManager(); // This will return the singleton instance
+const proxyManager = new ProxyManager();
 
 const runningProcesses = new Map();
 
 class WebEnabledJob extends Job {
 	constructor(options) {
-		const filteredDeps = options.dependencies ? options.dependencies.filter((dep) => !dep.match(/^streamlit$/i)) : options.dependencies;
-
-		// If it's a Streamlit runtime, ensure .py extension on files
-		if (options.runtime.language === "streamlit") {
-			options.files = options.files.map((file) => ({
-				...file,
-				name: file.name.endsWith(".py") ? file.name : `${file.name}.py`,
-			}));
-		}
-
 		super({
 			runtime: options.runtime,
 			files: options.files,
@@ -32,36 +20,34 @@ class WebEnabledJob extends Job {
 			timeouts: options.timeouts,
 			cpu_times: options.cpu_times,
 			memory_limits: options.memory_limits,
-			dependencies: filteredDeps,
+			dependencies: options.dependencies,
 			long_running: options.long_running,
 		});
 
-		this.webAppPort = null;
-		this.proxyPath = null;
-		this.additionalEnvVars = {};
+		this.proxies = new Map();
+		this.portDetector = null;
 		this.processPromise = null;
+		this.additionalEnvVars = {};
 
 		jobTimer.startTiming(this.uuid);
 
-		if (this.runtime.language === "streamlit" || this.long_running) {
+		if (this.long_running) {
 			runningProcesses.set(this.uuid, this);
 		}
 	}
 
 	async installDependencies(box, event_bus = null) {
 		if (!this.dependencies || this.dependencies.length === 0) {
-			this.logger.debug("No dependencies to install after filtering");
+			this.logger.debug("No dependencies to install");
 			return { code: 0, status: "success" };
 		}
-
-		const effectiveLanguage = this.runtime.language === "streamlit" ? "python" : this.runtime.language;
 
 		const packageInstallCommands = {
 			python: (dependencies) => ["install", "--target=/box/submission", ...dependencies],
 			javascript: (dependencies) => ["install", "--prefix", "/box/submission", ...dependencies],
 		};
 
-		const installCommandArgs = packageInstallCommands[effectiveLanguage];
+		const installCommandArgs = packageInstallCommands[this.runtime.language];
 
 		if (!installCommandArgs) {
 			throw new Error(`Package installation not implemented for language ${this.runtime.language}`);
@@ -69,7 +55,7 @@ class WebEnabledJob extends Job {
 
 		const args = installCommandArgs(this.dependencies);
 
-		this.logger.info(`Running install command for ${this.runtime.language} (using ${effectiveLanguage} package manager): packagemanager ${args.join(" ")}`);
+		this.logger.info(`Running install command: packagemanager ${args.join(" ")}`);
 
 		const installResult = await this.safe_call(box, "packagemanager", args, this.timeouts.run, this.cpu_times.run, this.memory_limits.run, event_bus);
 
@@ -91,40 +77,18 @@ class WebEnabledJob extends Job {
 		this.logger.debug("Dependencies installed successfully");
 	}
 
-	waitForStreamlitServer(event_bus) {
-		let stdout = "";
-		let stderr = "";
+	async setupProxyForPort(port) {
+		if (this.proxies.has(port)) return this.proxies.get(port);
 
-		return new Promise((resolve, reject) => {
-			const timeout = setTimeout(() => {
-				this.logger.debug("Timeout waiting for Streamlit server");
-				this.logger.debug(`Collected stdout: ${stdout}`);
-				this.logger.debug(`Collected stderr: ${stderr}`);
-				reject(new Error("Timeout waiting for Streamlit server"));
-			}, 30000);
+		const proxyInfo = proxyManager.createProxy(this.uuid);
+		proxyInfo.port = port; // Use the actual detected port
+		this.proxies.set(port, proxyInfo);
 
-			event_bus.on("stdout", (data) => {
-				const chunk = data.toString();
-				stdout += chunk;
-				this.logger.debug(`Received stdout: ${chunk}`);
-
-				if (chunk.includes("You can now view your Streamlit app in your browser") || chunk.includes("Network URL: http") || chunk.includes("Streamlit listening on")) {
-					this.logger.debug("Found Streamlit ready message");
-					clearTimeout(timeout);
-					resolve({ stdout, stderr });
-				}
-			});
-
-			event_bus.on("stderr", (data) => {
-				const chunk = data.toString();
-				stderr += chunk;
-				this.logger.debug(`Received stderr: ${chunk}`);
-			});
-		});
+		this.logger.debug(`Created proxy for port ${port} -> ${proxyInfo.path}`);
+		return proxyInfo;
 	}
 
 	async execute(box, event_bus = null) {
-		const isStreamlit = this.runtime.language === "streamlit";
 		this.logger.debug(`Executing with runtime language: ${this.runtime.language}`);
 		jobTimer.startStage(this.uuid, "execute");
 		const localEventBus = event_bus || new EventEmitter();
@@ -135,96 +99,41 @@ class WebEnabledJob extends Job {
 				...this.additionalEnvVars,
 			};
 
-			// Handle Streamlit specific setup and execution
-			if (isStreamlit) {
-				// Create a proxy for this job
-				const proxyInfo = proxyManager.createProxy(this.uuid);
-				this.webAppPort = proxyInfo.port;
-				this.proxyPath = proxyManager.getBaseUrl() + proxyInfo.path + "/";
+			// Start port detection
+			this.portDetector = new PortDetector(box);
 
-				// Get the main file from the files array
-				const mainFile = this.files[0]?.name;
-				if (!mainFile) {
-					throw new Error("No file provided for Streamlit execution");
-				}
+			// Start the process
+			this.processPromise = super.execute(box, localEventBus);
 
-				// Place the file first, then the Streamlit args
-				this.args = [mainFile, "--server.baseUrlPath", proxyInfo.path, "--server.port", this.webAppPort.toString()];
-
-				this.logger.debug(`Created proxy with port ${this.webAppPort} and path ${this.proxyPath}`);
-				this.logger.debug(`Streamlit args: ${this.args.join(" ")}`);
-
-				await this.setupStreamlitEnvironment(box);
-
-				// Create error monitor
-				const monitor = new StreamlitErrorMonitor(this);
-				let stdout = "";
-				let stderr = "";
-
-				// Set up error collection
-				localEventBus.on("stdout", (data) => {
-					stdout += data.toString();
-				});
-
-				localEventBus.on("stderr", (data) => {
-					stderr += data.toString();
-				});
-
-				try {
-					this.logger.debug("Starting Streamlit process");
-
-					// Start the process
-					this.processPromise = this.safe_call(
-						box,
-						"run",
-						this.args,
-						22200000, // 6.1 hour time limit
-						21600000, // 6 hour CPU time limit
-						this.memory_limits.run,
-						localEventBus,
-						{ env: combinedEnv }
-					);
-
-					// Monitor for startup and errors
-					await monitor.monitorStreamlitOutput(localEventBus);
-
-					return {
-						run: {
-							code: 0,
-							signal: null,
-							stdout,
-							stderr,
-							output: stdout + stderr,
-							memory: null,
-							message: "Streamlit server started",
-							status: "success",
-							webAppUrl: this.proxyPath,
-						},
-						language: this.runtime.language,
-						version: this.runtime.version.raw,
-					};
-				} catch (error) {
-					// Clean up proxy if startup failed
-					if (this.proxyPath) {
-						proxyManager.removeProxy(this.uuid);
-					}
-					// Include collected output in error
-					error.stdout = stdout;
-					error.stderr = stderr;
-					throw error;
-				}
+			// Monitor for port opening
+			let portResult = null;
+			try {
+				const port = await this.portDetector.detectNewPort();
+				const proxyInfo = await this.setupProxyForPort(port);
+				portResult = {
+					port,
+					proxyUrl: proxyManager.getBaseUrl() + proxyInfo.path,
+				};
+			} catch (error) {
+				this.logger.debug(`No ports were opened: ${error.message}`);
 			}
 
-			// For non-Streamlit jobs, run the parent execute method
-			const result = await super.execute(box, localEventBus);
+			// Wait for process completion or keep running for long-running jobs
+			const result = await this.processPromise;
 
-			// Update metrics for all jobs
+			// Update metrics
 			if (result.run) {
 				jobTimer.updateMetrics(this.uuid, {
 					cpuTime: result.run.cpu_time,
 					wallTime: result.run.wall_time,
 					memory: result.run.memory,
 				});
+
+				// Add proxy information if a port was detected
+				if (portResult) {
+					result.run.webAppUrl = portResult.proxyUrl;
+					result.run.port = portResult.port;
+				}
 			}
 
 			// Add to process history
@@ -239,6 +148,11 @@ class WebEnabledJob extends Job {
 
 			return result;
 		} catch (error) {
+			// Clean up any proxies if execution failed
+			for (const [port, proxyInfo] of this.proxies.entries()) {
+				proxyManager.removeProxy(this.uuid);
+			}
+
 			// Record failed process
 			processHistory.addProcess(this.uuid, {
 				language: this.runtime.language,
@@ -251,12 +165,11 @@ class WebEnabledJob extends Job {
 				stderr: error.stderr,
 			});
 
-			this.logger.error(`Error in execute: ${error.message}`);
-			if (error.stdout) this.logger.error(`stdout: ${error.stdout}`);
-			if (error.stderr) this.logger.error(`stderr: ${error.stderr}`);
-
 			throw error;
 		} finally {
+			if (this.portDetector) {
+				await this.portDetector.cleanup();
+			}
 			jobTimer.endStage(this.uuid);
 		}
 	}
@@ -264,31 +177,29 @@ class WebEnabledJob extends Job {
 	async terminate() {
 		this.logger.info("Terminating job");
 
-		// First kill any running process
+		// Kill any running process
 		if (this.process) {
 			try {
 				process.kill(this.process.pid, "SIGKILL");
-				// Wait for process to actually terminate
 				await new Promise((resolve) => setTimeout(resolve, 1000));
 			} catch (error) {
 				this.logger.error(`Error killing process: ${error.message}`);
 			}
 		}
 
-		// Remove proxy before cleanup
-		if (this.proxyPath) {
-			this.logger.debug(`Cleaning up proxy for port ${this.webAppPort}`);
+		// Clean up all proxies
+		for (const [port, proxyInfo] of this.proxies.entries()) {
+			this.logger.debug(`Cleaning up proxy for port ${port}`);
 			proxyManager.removeProxy(this.uuid);
 		}
 
-		// Wait for any ongoing isolate operations
+		// Wait for ongoing operations
 		await new Promise((resolve) => setTimeout(resolve, 2000));
 
 		try {
 			await super.cleanup();
 		} catch (error) {
 			this.logger.error(`Error in cleanup: ${error.message}`);
-			// Force cleanup for each box
 			const boxIds = this.getBoxIds();
 			for (const boxId of boxIds) {
 				await this.forceCleanupBox(boxId);
@@ -299,7 +210,7 @@ class WebEnabledJob extends Job {
 		const timingReport = jobTimer.endTiming(this.uuid);
 		this.logger.debug("Job timing report:", timingReport);
 
-		// Save to history before removing from running processes
+		// Save to history
 		processHistory.addProcess(this.uuid, {
 			language: this.runtime.language,
 			version: this.runtime.version.raw,
@@ -312,23 +223,26 @@ class WebEnabledJob extends Job {
 	}
 
 	async cleanup() {
-		// If the runtime is not streamlit or there's no running process, remove the proxy if it exists
-		if (this.runtime.language !== "streamlit" || !this.processPromise) {
-			if (this.webAppPort) {
-				this.logger.debug(`Cleaning up proxy for port ${this.webAppPort}`);
-				proxyManager.removeProxy(this.uuid);
-			}
-			await super.cleanup();
+		// Clean up all proxies
+		for (const [port, proxyInfo] of this.proxies.entries()) {
+			this.logger.debug(`Cleaning up proxy for port ${port}`);
+			proxyManager.removeProxy(this.uuid);
 		}
+		this.proxies.clear();
+
+		if (this.portDetector) {
+			await this.portDetector.cleanup();
+		}
+
+		await super.cleanup();
 	}
 
-	async setupStreamlitEnvironment(box) {
+	async setupEnvironment(box) {
 		const homeDir = path.join(box.dir, "submission", "home");
 		await fs.mkdir(homeDir, { recursive: true });
 
 		this.additionalEnvVars = {
 			HOME: "/box/submission/home",
-			PORT: this.webAppPort.toString(),
 		};
 	}
 
