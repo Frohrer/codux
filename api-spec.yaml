@@ -85,6 +85,31 @@ components:
             memory:
               type: number
 
+    ProcessOutput:
+      type: object
+      properties:
+        stdout:
+          type: string
+          description: Standard output from the process
+        stderr:
+          type: string
+          description: Standard error from the process
+
+    ProcessOutputEvent:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [stdout, stderr]
+          description: Type of output stream
+        data:
+          type: string
+          description: Output content
+        timestamp:
+          type: string
+          format: date-time
+          description: Time when the output was generated
+
     ExecutionRequest:
       type: object
       required:
@@ -221,6 +246,48 @@ paths:
       responses:
         "101":
           description: WebSocket connection established
+
+  /logs/{id}:
+    get:
+      summary: Stream process logs using Server-Sent Events
+      description: Establishes an SSE connection to receive real-time process output
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: SSE stream established
+          content:
+            text/event-stream:
+              schema:
+                $ref: "#/components/schemas/ProcessOutputEvent"
+
+  /process/{id}/logs:
+    get:
+      summary: Get current process logs
+      description: Retrieve the current stdout and stderr output for a process
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Process logs retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProcessOutput"
+        "404":
+          description: Process not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
 
   /process:
     get:

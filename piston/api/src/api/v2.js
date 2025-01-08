@@ -143,6 +143,7 @@ function get_job(body) {
 					compile: compile_memory_limit ?? rt.memory_limits.compile,
 				},
 				proxyManager: ProxyManager,
+				long_running: req.body.long_running === true,
 			})
 		);
 	});
@@ -406,12 +407,14 @@ router.post("/execute", async (req, res) => {
 		logger.error(`Error executing job: ${job.uuid}:\n${error}`);
 		return res.status(500).send(error);
 	} finally {
-		try {
-			await job.cleanup();
-			jobTimer.cleanup(job.uuid);
-		} catch (error) {
-			logger.error(`Error cleaning up job: ${job.uuid}:\n${error}`);
-			return res.status(500).send();
+		if (!job.long_running) {
+			try {
+				await job.cleanup();
+				jobTimer.cleanup(job.uuid);
+			} catch (error) {
+				logger.error(`Error cleaning up job: ${job.uuid}:\n${error}`);
+				return res.status(500).send();
+			}
 		}
 	}
 });

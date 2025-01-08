@@ -23,8 +23,9 @@ const get_next_box_id = () => ++box_id % MAX_BOX_ID;
 
 class Job {
 	#dirty_boxes;
-	constructor({ runtime, files, args, stdin, timeouts, cpu_times, memory_limits, dependencies = [] }) {
+	constructor({ runtime, files, args, stdin, timeouts, cpu_times, memory_limits, dependencies = [], long_running }) {
 		this.uuid = uuidv4();
+		this.long_running = !!long_running;
 		this.dependencies = dependencies;
 		this.logger = logplease.create(`job/${this.uuid}`);
 

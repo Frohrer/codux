@@ -5,6 +5,7 @@ const { jobTimer } = require("./timing");
 const { processHistory } = require("./process-history");
 const EventEmitter = require("events");
 const StreamlitErrorMonitor = require("./streamlit-error-monitor");
+
 // Import the ProxyManager class (exported as a singleton in your code).
 const ProxyManager = require("./proxy-handler");
 const proxyManager = new ProxyManager(); // This will return the singleton instance
@@ -32,6 +33,7 @@ class WebEnabledJob extends Job {
 			cpu_times: options.cpu_times,
 			memory_limits: options.memory_limits,
 			dependencies: filteredDeps,
+			long_running: options.long_running,
 		});
 
 		this.webAppPort = null;
@@ -41,7 +43,7 @@ class WebEnabledJob extends Job {
 
 		jobTimer.startTiming(this.uuid);
 
-		if (this.runtime.language === "streamlit") {
+		if (this.runtime.language === "streamlit" || this.long_running) {
 			runningProcesses.set(this.uuid, this);
 		}
 	}
