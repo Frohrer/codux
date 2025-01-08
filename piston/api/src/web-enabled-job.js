@@ -42,11 +42,10 @@ class WebEnabledJob extends Job {
 			return { code: 0, status: "success" };
 		}
 
-		const effectiveLanguage = this.runtime.language === "streamlit" ? "python" : this.runtime.language;
-
 		const packageInstallCommands = {
 			python: (dependencies) => ["install", "--target=/box/submission", ...dependencies],
 			javascript: (dependencies) => ["install", "--prefix", "/box/submission", ...dependencies],
+			streamlit: (dependencies) => ["install", "--target=/box/submission", ...dependencies],
 		};
 
 		const installCommandArgs = packageInstallCommands[effectiveLanguage];
