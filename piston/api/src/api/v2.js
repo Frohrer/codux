@@ -143,7 +143,7 @@ function get_job(body) {
 					compile: compile_memory_limit ?? rt.memory_limits.compile,
 				},
 				proxyManager: ProxyManager,
-				long_running: req.body.long_running === true,
+				long_running: body.long_running === true,
 			})
 		);
 	});
