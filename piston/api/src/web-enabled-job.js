@@ -44,11 +44,11 @@ class WebEnabledJob extends Job {
 
 		const packageInstallCommands = {
 			python: (dependencies) => ["install", "--target=/box/submission", ...dependencies],
+			python: (dependencies) => ["install", "--target=/box/submission", ...dependencies],
 			javascript: (dependencies) => ["install", "--prefix", "/box/submission", ...dependencies],
-			streamlit: (dependencies) => ["install", "--target=/box/submission", ...dependencies],
 		};
 
-		const installCommandArgs = packageInstallCommands[effectiveLanguage];
+		const installCommandArgs = packageInstallCommands[this.runtime.language];
 
 		if (!installCommandArgs) {
 			throw new Error(`Package installation not implemented for language ${this.runtime.language}`);
@@ -101,7 +101,7 @@ class WebEnabledJob extends Job {
 			};
 
 			// Start port detection
-			this.portDetector = new PortDetector(this, box);
+			this.portDetector = new PortDetector(box);
 
 			// Start the process
 			this.processPromise = super.execute(box, localEventBus);
@@ -130,14 +130,10 @@ class WebEnabledJob extends Job {
 					memory: result.run.memory,
 				});
 
-				// Add proxy information for any detected ports
+				// Add proxy information if a port was detected
 				if (portResult) {
-					result.run.ports = [
-						{
-							port: portResult.port,
-							url: portResult.proxyUrl,
-						},
-					];
+					result.run.webAppUrl = portResult.proxyUrl;
+					result.run.port = portResult.port;
 				}
 			}
 
@@ -249,6 +245,11 @@ class WebEnabledJob extends Job {
 		this.additionalEnvVars = {
 			HOME: "/box/submission/home",
 		};
+	}
+
+	isWebApp() {
+		const webFrameworks = ["flask", "dash", "gradio"];
+		return this.files.some((file) => webFrameworks.some((framework) => file.content.includes(`import ${framework}`) || file.content.includes(`from ${framework}`)));
 	}
 }
 
