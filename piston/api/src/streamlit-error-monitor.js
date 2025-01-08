@@ -1,4 +1,5 @@
 const EventEmitter = require("events");
+const { processOutputManager } = require("./process-output");
 
 class StreamlitErrorMonitor {
 	constructor(job) {
@@ -16,6 +17,9 @@ class StreamlitErrorMonitor {
 			const checkForErrors = (data) => {
 				const chunk = data.toString();
 				this.errorBuffer += chunk;
+
+				// Store output in ProcessOutputManager
+				processOutputManager.addOutput(this.job.uuid, "stdout", chunk);
 
 				// Check for startup success
 				if (!this.hasStarted && (chunk.includes("You can now view your Streamlit app in your browser") || chunk.includes("Network URL: http"))) {
@@ -47,8 +51,15 @@ class StreamlitErrorMonitor {
 				}
 			}, 45000);
 
-			eventBus.on("stdout", checkForErrors);
-			eventBus.on("stderr", checkForErrors);
+			eventBus.on("stdout", (data) => {
+				checkForErrors(data);
+				processOutputManager.addOutput(this.job.uuid, "stdout", data);
+			});
+
+			eventBus.on("stderr", (data) => {
+				checkForErrors(data);
+				processOutputManager.addOutput(this.job.uuid, "stderr", data);
+			});
 
 			// Handle process exit
 			eventBus.on("exit", (stage, info) => {
@@ -82,5 +93,4 @@ class StreamlitErrorMonitor {
 	}
 }
 
-// Export the class directly
 module.exports = StreamlitErrorMonitor;
