@@ -4,7 +4,7 @@ const path = require("path");
 const { jobTimer } = require("./timing");
 const { processHistory } = require("./process-history");
 const EventEmitter = require("events");
-
+const StreamlitErrorMonitor = require("./streamlit-error-monitor");
 // Import the ProxyManager class (exported as a singleton in your code).
 const ProxyManager = require("./proxy-handler");
 const proxyManager = new ProxyManager(); // This will return the singleton instance
