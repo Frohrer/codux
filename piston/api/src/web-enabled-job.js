@@ -4,7 +4,6 @@ const path = require("path");
 const { jobTimer } = require("./timing");
 const { processHistory } = require("./process-history");
 const EventEmitter = require("events");
-const StreamlitErrorMonitor = require("./streamlit-error-monitor");
 
 // Import the ProxyManager class (exported as a singleton in your code).
 const ProxyManager = require("./proxy-handler");
@@ -128,43 +127,52 @@ class WebEnabledJob extends Job {
 		jobTimer.startStage(this.uuid, "execute");
 		const localEventBus = event_bus || new EventEmitter();
 
-		if (isStreamlit) {
-			// Create a proxy for this job
-			const proxyInfo = proxyManager.createProxy(this.uuid);
-			this.webAppPort = proxyInfo.port;
-			this.proxyPath = proxyManager.getBaseUrl() + proxyInfo.path + "/";
-
-			// Get the main file from the files array
-			const mainFile = this.files[0]?.name;
-			if (!mainFile) {
-				throw new Error("No file provided for Streamlit execution");
-			}
-
-			// Place the file first, then the Streamlit args
-			this.args = [mainFile, "--server.baseUrlPath", proxyInfo.path, "--server.port", this.webAppPort.toString()];
-
-			this.logger.debug(`Created proxy with port ${this.webAppPort} and path ${this.proxyPath}`);
-			this.logger.debug(`Streamlit args: ${this.args.join(" ")}`);
-
-			await this.setupStreamlitEnvironment(box);
-		}
-
 		try {
 			const combinedEnv = {
 				...this.runtime.env_vars,
 				...this.additionalEnvVars,
 			};
 
-			const originalSafeCall = this.safe_call;
-
+			// Handle Streamlit specific setup and execution
 			if (isStreamlit) {
+				// Create a proxy for this job
+				const proxyInfo = proxyManager.createProxy(this.uuid);
+				this.webAppPort = proxyInfo.port;
+				this.proxyPath = proxyManager.getBaseUrl() + proxyInfo.path + "/";
+
+				// Get the main file from the files array
+				const mainFile = this.files[0]?.name;
+				if (!mainFile) {
+					throw new Error("No file provided for Streamlit execution");
+				}
+
+				// Place the file first, then the Streamlit args
+				this.args = [mainFile, "--server.baseUrlPath", proxyInfo.path, "--server.port", this.webAppPort.toString()];
+
+				this.logger.debug(`Created proxy with port ${this.webAppPort} and path ${this.proxyPath}`);
+				this.logger.debug(`Streamlit args: ${this.args.join(" ")}`);
+
+				await this.setupStreamlitEnvironment(box);
+
+				// Create error monitor
 				const monitor = new StreamlitErrorMonitor(this);
+				let stdout = "";
+				let stderr = "";
+
+				// Set up error collection
+				localEventBus.on("stdout", (data) => {
+					stdout += data.toString();
+				});
+
+				localEventBus.on("stderr", (data) => {
+					stderr += data.toString();
+				});
 
 				try {
-					await monitor.monitorStreamlitOutput(localEventBus);
+					this.logger.debug("Starting Streamlit process");
 
-					this.processPromise = originalSafeCall.call(
-						this,
+					// Start the process
+					this.processPromise = this.safe_call(
 						box,
 						"run",
 						this.args,
@@ -172,19 +180,43 @@ class WebEnabledJob extends Job {
 						21600000, // 6 hour CPU time limit
 						this.memory_limits.run,
 						localEventBus,
-						{ env: this.additionalEnvVars }
+						{ env: combinedEnv }
 					);
+
+					// Monitor for startup and errors
+					await monitor.monitorStreamlitOutput(localEventBus);
+
+					return {
+						run: {
+							code: 0,
+							signal: null,
+							stdout,
+							stderr,
+							output: stdout + stderr,
+							memory: null,
+							message: "Streamlit server started",
+							status: "success",
+							webAppUrl: this.proxyPath,
+						},
+						language: this.runtime.language,
+						version: this.runtime.version.raw,
+					};
 				} catch (error) {
-					this.logger.error(`Streamlit error detected: ${error.message}`);
+					// Clean up proxy if startup failed
 					if (this.proxyPath) {
 						proxyManager.removeProxy(this.uuid);
 					}
+					// Include collected output in error
+					error.stdout = stdout;
+					error.stderr = stderr;
 					throw error;
 				}
 			}
 
-			// For non-Streamlit jobs, just run the parent execute method
+			// For non-Streamlit jobs, run the parent execute method
 			const result = await super.execute(box, localEventBus);
+
+			// Update metrics for all jobs
 			if (result.run) {
 				jobTimer.updateMetrics(this.uuid, {
 					cpuTime: result.run.cpu_time,
@@ -193,6 +225,7 @@ class WebEnabledJob extends Job {
 				});
 			}
 
+			// Add to process history
 			processHistory.addProcess(this.uuid, {
 				language: this.runtime.language,
 				version: this.runtime.version.raw,
@@ -204,6 +237,7 @@ class WebEnabledJob extends Job {
 
 			return result;
 		} catch (error) {
+			// Record failed process
 			processHistory.addProcess(this.uuid, {
 				language: this.runtime.language,
 				version: this.runtime.version.raw,
@@ -211,8 +245,14 @@ class WebEnabledJob extends Job {
 				status: "failed",
 				timing: jobTimer.getTimingReport(this.uuid),
 				error: error.message,
+				stdout: error.stdout,
+				stderr: error.stderr,
 			});
+
 			this.logger.error(`Error in execute: ${error.message}`);
+			if (error.stdout) this.logger.error(`stdout: ${error.stdout}`);
+			if (error.stderr) this.logger.error(`stderr: ${error.stderr}`);
+
 			throw error;
 		} finally {
 			jobTimer.endStage(this.uuid);
