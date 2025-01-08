@@ -1,8 +1,9 @@
 const { EventEmitter } = require("events");
 
 class PortDetector extends EventEmitter {
-	constructor(box) {
+	constructor(job, box) {
 		super();
+		this.job = job; // Store reference to the job instance
 		this.box = box;
 		this.initialPorts = new Set();
 		this.detectedPorts = new Set();
@@ -11,7 +12,7 @@ class PortDetector extends EventEmitter {
 
 	async listListeningPorts() {
 		// Run netstat inside the isolate box to detect listening ports
-		const result = await this.box.safe_call(
+		const result = await this.job.safe_call(
 			this.box,
 			"netstat",
 			["-tunlp"],
