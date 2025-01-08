@@ -1,5 +1,5 @@
 const EventEmitter = require("events");
-const { processOutputManager } = require("./process-output");
+const { processOutputManager } = require("./process-output-manager");
 
 class StreamlitErrorMonitor {
 	constructor(job) {
