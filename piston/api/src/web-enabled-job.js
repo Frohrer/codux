@@ -44,6 +44,7 @@ class WebEnabledJob extends Job {
 
 		const packageInstallCommands = {
 			python: (dependencies) => ["install", "--target=/box/submission", ...dependencies],
+			streamlit: (dependencies) => ["install", "--target=/box/submission", ...dependencies],
 			javascript: (dependencies) => ["install", "--prefix", "/box/submission", ...dependencies],
 		};
 
