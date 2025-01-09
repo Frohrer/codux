@@ -43,7 +43,7 @@ class WebEnabledJob extends Job {
 
 		jobTimer.startTiming(this.uuid);
 
-		if (this.runtime.language === "streamlit" || this.long_running) {
+		if (this.long_running) {
 			runningProcesses.set(this.uuid, this);
 		}
 	}
@@ -141,6 +141,14 @@ class WebEnabledJob extends Job {
 				this.webAppPort = proxyInfo.port;
 				this.proxyPath = proxyManager.getBaseUrl() + proxyInfo.path + "/";
 
+				if (this.dependencies && this.dependencies.length > 0) {
+					this.logger.debug(`Installing additional Python dependencies for Streamlit: ${this.dependencies.join(", ")}`);
+					const installResult = await this.installDependencies(box, localEventBus);
+					if (installResult && installResult.code !== 0) {
+						// Stop if something went wrong in install
+						throw new Error(`Failed to install dependencies: code=${installResult.code}, msg=${installResult.message}`);
+					}
+				}
 				// Get the main file from the files array
 				const mainFile = this.files[0]?.name;
 				if (!mainFile) {
