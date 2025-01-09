@@ -313,44 +313,44 @@ class Job {
 		};
 	}
 
-	async installDependencies(box, event_bus = null) {
-		const packageInstallCommands = {
-			python: (dependencies) => ["install", "--target=/box/submission", ...dependencies],
-			node: (dependencies) => ["install", "--prefix", "/box/submission", ...dependencies],
-			// Add other languages as needed
-		};
+	// async installDependencies(box, event_bus = null) {
+	// 	const packageInstallCommands = {
+	// 		python: (dependencies) => ["install", "--target=/box/submission", ...dependencies],
+	// 		node: (dependencies) => ["install", "--prefix", "/box/submission", ...dependencies],
+	// 		// Add other languages as needed
+	// 	};
 
-		const installCommandArgs = packageInstallCommands[this.runtime.language];
+	// 	const installCommandArgs = packageInstallCommands[this.runtime.language];
 
-		if (!installCommandArgs) {
-			throw new Error(`Package installation not implemented for language ${this.runtime.language}`);
-		}
+	// 	if (!installCommandArgs) {
+	// 		throw new Error(`Package installation not implemented for language ${this.runtime.language}`);
+	// 	}
 
-		const args = installCommandArgs(this.dependencies);
+	// 	const args = installCommandArgs(this.dependencies);
 
-		this.logger.info(`Running install command: packagemanager ${args.join(" ")}`);
+	// 	this.logger.info(`Running install command: packagemanager ${args.join(" ")}`);
 
-		// Run the install command inside the isolated environment
-		const installResult = await this.safe_call(box, "packagemanager", args, this.timeouts.run, this.cpu_times.run, this.memory_limits.run, event_bus);
+	// 	// Run the install command inside the isolated environment
+	// 	const installResult = await this.safe_call(box, "packagemanager", args, this.timeouts.run, this.cpu_times.run, this.memory_limits.run, event_bus);
 
-		if (installResult.code !== 0) {
-			this.logger.error(`Failed to install dependencies:`);
-			this.logger.error(`stdout: ${installResult.stdout}`);
-			this.logger.error(`stderr: ${installResult.stderr}`);
-			this.logger.error(`message: ${installResult.message}`);
-			if (event_bus) {
-				event_bus.emit("exit", "install", {
-					error: installResult.error,
-					code: installResult.code,
-					signal: installResult.signal,
-				});
-			}
-			return installResult;
-			// throw new Error(`Dependency installation failed with exit code ${installResult.code}`);
-		}
+	// 	if (installResult.code !== 0) {
+	// 		this.logger.error(`Failed to install dependencies:`);
+	// 		this.logger.error(`stdout: ${installResult.stdout}`);
+	// 		this.logger.error(`stderr: ${installResult.stderr}`);
+	// 		this.logger.error(`message: ${installResult.message}`);
+	// 		if (event_bus) {
+	// 			event_bus.emit("exit", "install", {
+	// 				error: installResult.error,
+	// 				code: installResult.code,
+	// 				signal: installResult.signal,
+	// 			});
+	// 		}
+	// 		return installResult;
+	// 		// throw new Error(`Dependency installation failed with exit code ${installResult.code}`);
+	// 	}
 
-		this.logger.debug("Dependencies installed successfully");
-	}
+	// 	this.logger.debug("Dependencies installed successfully");
+	// }
 
 	async execute(box, event_bus = null) {
 		if (this.state !== job_states.PRIMED) {

@@ -54,14 +54,13 @@ class WebEnabledJob extends Job {
 			return { code: 0, status: "success" };
 		}
 
-		const effectiveLanguage = this.runtime.language === "streamlit" ? "python" : this.runtime.language;
-
 		const packageInstallCommands = {
 			python: (dependencies) => ["install", "--target=/box/submission", ...dependencies],
+			streamlit: (dependencies) => ["install", "--target=/box/submission", ...dependencies],
 			javascript: (dependencies) => ["install", "--prefix", "/box/submission", ...dependencies],
 		};
 
-		const installCommandArgs = packageInstallCommands[effectiveLanguage];
+		const installCommandArgs = packageInstallCommands[this.runtime.language];
 
 		if (!installCommandArgs) {
 			throw new Error(`Package installation not implemented for language ${this.runtime.language}`);
