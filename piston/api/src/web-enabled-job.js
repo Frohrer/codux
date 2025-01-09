@@ -101,7 +101,7 @@ class WebEnabledJob extends Job {
 			};
 
 			// Start port detection
-			this.portDetector = new PortDetector(box);
+			this.portDetector = new PortDetector(this, box);
 
 			// Start the process
 			this.processPromise = super.execute(box, localEventBus);
