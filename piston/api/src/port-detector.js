@@ -11,8 +11,9 @@ class PortDetector extends EventEmitter {
 	}
 
 	async listListeningPorts() {
-		// Run netstat inside the isolate box to detect listening ports
-		const result = await this.job.safe_call(
+		// Use Job's prototype methods through our instance
+		const result = await this.job.constructor.prototype.safe_call.call(
+			this.job,
 			this.box,
 			"netstat",
 			["-tunlp"],
