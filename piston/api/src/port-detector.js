@@ -1,78 +1,79 @@
-const { EventEmitter } = require("events");
+// host-port-detector.js
+const cp = require("child_process");
 
-class PortDetector extends EventEmitter {
-	constructor(job, box) {
-		super();
-		this.job = job; // The actual WebEnabledJob instance
-		this.box = box;
-		this.initialPorts = new Set();
-		this.detectedPorts = new Set();
-		this.isMonitoring = false;
-	}
+/**
+ * Poll the host for any newly opened port that matches your process criteria
+ * (e.g., "python" or "node"). Requires the isolate box to be started with --share-net.
+ *
+ * @param {RegExp} [options.processRegex] - Which processes to watch for (e.g., /python/)
+ * @param {Number} [options.timeoutMs] - how long (ms) to wait
+ * @param {Number} [options.pollInterval] - how often (ms) to poll netstat
+ * @returns {Promise<number>} resolves to the newly opened port
+ */
+async function detectPortFromHost({ processRegex = /python/, timeoutMs = 30000, pollInterval = 1000 } = {}) {
+	const start = Date.now();
+	const knownPorts = new Set();
 
-	async listListeningPorts() {
-		// Now we can just call `this.job.safe_call(...)`
-		const result = await this.job.safe_call(
-			this.box,
-			"netstat",
-			["-tunlp"],
-			5000, // Short timeout
-			5000, // Short CPU time
-			128 * 1024 * 1024, // 128 MB memory limit
-			null
-		);
+	while (Date.now() - start < timeoutMs) {
+		const netstatOutput = await runHostNetstat();
+		const listeningPorts = parseListeningPorts(netstatOutput, processRegex);
 
-		if (result.code !== 0) {
-			return [];
-		}
-
-		const ports = [];
-		const lines = result.stdout.split("\n");
-		for (const line of lines) {
-			if (line.includes("LISTEN")) {
-				// Example parse: "tcp 0 0 0.0.0.0:8501 0.0.0.0:* LISTEN 123/python"
-				const match = line.match(/0\.0\.0\.0:(\d+)/);
-				if (match) {
-					const port = parseInt(match[1], 10);
-					if (!isNaN(port)) {
-						ports.push(port);
-					}
-				}
-			}
-		}
-		return ports;
-	}
-
-	async detectNewPort(timeoutMs = 30000) {
-		const startTime = Date.now();
-		const pollInterval = 1000; // Poll every second
-
-		// Get initial state of ports
-		this.initialPorts = new Set(await this.listListeningPorts());
-
-		while (Date.now() - startTime < timeoutMs) {
-			await new Promise((resolve) => setTimeout(resolve, pollInterval));
-
-			const currentPorts = await this.listListeningPorts();
-
-			// Look for new ports that weren't in the initial set
-			for (const port of currentPorts) {
-				if (!this.initialPorts.has(port) && !this.detectedPorts.has(port)) {
-					this.detectedPorts.add(port);
-					this.emit("port-opened", port);
-					return port;
-				}
+		// Check for any new ports we haven't seen before
+		for (const port of listeningPorts) {
+			if (!knownPorts.has(port)) {
+				// Found a newly opened port
+				return port;
 			}
 		}
 
-		throw new Error("Timeout waiting for port to open");
-	}
+		// Add these ports to knownPorts so we don't return duplicates next loop
+		for (const port of listeningPorts) {
+			knownPorts.add(port);
+		}
 
-	async cleanup() {
-		this.initialPorts.clear();
-		this.detectedPorts.clear();
-		this.isMonitoring = false;
+		// Sleep a bit, then poll again
+		await new Promise((resolve) => setTimeout(resolve, pollInterval));
 	}
+	throw new Error(`Timeout after ${timeoutMs}ms waiting for a new port`);
 }
 
-module.exports = PortDetector;
+/**
+ * Run netstat (or 'ss -lntp') on the host
+ */
+function runHostNetstat() {
+	return new Promise((resolve, reject) => {
+		cp.exec("netstat -tunlp", (error, stdout, stderr) => {
+			if (error) return reject(error);
+			resolve(stdout);
+		});
+	});
+}
+
+/**
+ * Parse netstat output lines, look for lines in LISTEN state,
+ * and match them to a specific process name or pid using `processRegex`.
+ */
+function parseListeningPorts(netstatOutput, processRegex) {
+	const ports = [];
+	const lines = netstatOutput.split("\n");
+
+	for (const line of lines) {
+		if (!line.includes("LISTEN")) continue;
+
+		// Example line:
+		// "tcp   0   0 0.0.0.0:8501   0.0.0.0:*   LISTEN   12345/python"
+		const match = line.match(/0\.0\.0\.0:(\d+)\s+.*LISTEN\s+(\S+)/);
+		if (!match) continue;
+
+		const portStr = match[1]; // e.g. "8501"
+		const processField = match[2]; // e.g. "12345/python"
+
+		const port = parseInt(portStr, 10);
+		if (!isNaN(port) && processRegex.test(processField)) {
+			ports.push(port);
+		}
+	}
+	return ports;
+}
+
+module.exports = { detectPortFromHost };
