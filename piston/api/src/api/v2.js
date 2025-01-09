@@ -419,7 +419,6 @@ router.post("/execute", async (req, res) => {
 	}
 });
 
-// Add SSE endpoint for process logs
 router.get("/logs/:id", (req, res) => {
 	const processId = req.params.id;
 
@@ -444,7 +443,6 @@ router.get("/logs/:id", (req, res) => {
 	});
 });
 
-// Add REST endpoint to get current logs
 router.get("/process/:id/logs", (req, res) => {
 	const processId = req.params.id;
 	const output = processOutputManager.getProcessOutput(processId);
