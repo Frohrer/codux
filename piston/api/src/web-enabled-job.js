@@ -68,7 +68,7 @@ class WebEnabledJob extends Job {
 
 		const args = installCommandArgs(this.dependencies);
 
-		this.logger.info(`Running install command for ${this.runtime.language} (using ${effectiveLanguage} package manager): packagemanager ${args.join(" ")}`);
+		this.logger.info(`Running install command for ${this.runtime.language} (using ${this.runtime.language} package manager): packagemanager ${args.join(" ")}`);
 
 		const installResult = await this.safe_call(box, "packagemanager", args, this.timeouts.run, this.cpu_times.run, this.memory_limits.run, event_bus);
 
