@@ -405,7 +405,7 @@ router.post("/execute", async (req, res) => {
 		return res.status(200).send(result);
 	} catch (error) {
 		logger.error(`Error executing job: ${job.uuid}:\n${error}`);
-		return res.status(500).send(error);
+		return res.status(500).send(JSON.stringify(error));
 	} finally {
 		if (!job.long_running) {
 			try {
