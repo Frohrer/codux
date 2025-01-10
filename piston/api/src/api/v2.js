@@ -413,7 +413,7 @@ router.post("/execute", async (req, res) => {
 				jobTimer.cleanup(job.uuid);
 			} catch (error) {
 				logger.error(`Error cleaning up job: ${job.uuid}:\n${error}`);
-				return res.status(500).send();
+				// return res.status(500).send("No error available");
 			}
 		}
 	}
