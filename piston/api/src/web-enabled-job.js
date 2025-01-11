@@ -33,7 +33,6 @@ class WebEnabledJob extends Job {
 			cpu_times: options.cpu_times,
 			memory_limits: options.memory_limits,
 			dependencies: filteredDeps,
-			long_running: options.long_running,
 		});
 
 		this.webAppPort = null;
@@ -43,9 +42,7 @@ class WebEnabledJob extends Job {
 
 		jobTimer.startTiming(this.uuid);
 
-		if (this.long_running) {
-			runningProcesses.set(this.uuid, this);
-		}
+		runningProcesses.set(this.uuid, this);
 	}
 
 	async installDependencies(box, event_bus = null) {
