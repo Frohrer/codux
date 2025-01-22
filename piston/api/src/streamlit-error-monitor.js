@@ -28,13 +28,18 @@ class StreamlitErrorMonitor {
 					resolve({ status: "started" });
 				}
 
-				// Check for errors
+				// Check for errors and emit them as events
 				for (const pattern of this.errorPatterns) {
 					if (pattern.test(this.errorBuffer)) {
 						const error = this.parseError(this.errorBuffer);
-						clearTimeout(errorTimeout);
-						reject(new Error(`Streamlit Error: ${error}`));
-						return;
+						// Emit error event instead of just rejecting
+						eventBus.emit("streamlit-error", {
+							type: "error",
+							message: error,
+							timestamp: new Date().toISOString(),
+						});
+						// Clear the error buffer after emitting
+						this.errorBuffer = "";
 					}
 				}
 			};
