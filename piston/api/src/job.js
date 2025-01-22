@@ -48,7 +48,7 @@ class Job {
         this.memory_limits = memory_limits;
 
         this.state = job_states.READY;
-        this.#dirty_boxes = [];
+        this.dirty_boxes = [];
     }
 
     async forceCleanupBox(boxId) {
@@ -83,7 +83,7 @@ class Job {
 
     getBoxIds() {
         // Since #dirty_boxes is private, we implement this to safely expose box IDs
-        return Array.from(this.#dirty_boxes).map((box) => box.id);
+        return Array.from(this.dirty_boxes).map((box) => box.id);
     }
 
     async create_isolate_box() {
@@ -103,7 +103,7 @@ class Job {
                     metadata_file_path,
                     dir: `${stdout.trim()}/box`,
                 };
-                this.#dirty_boxes.push(box);
+                this.dirty_boxes.push(box);
                 res(box);
             });
         });
@@ -119,7 +119,7 @@ class Job {
         this.logger.info(`Priming job`);
         remaining_job_spaces--;
         this.logger.debug("Running isolate --init");
-        const box = await this.#create_isolate_box();
+        const box = await this.create_isolate_box();
 
         this.logger.debug(`Creating submission files in Isolate box`);
         const submission_dir = path.join(box.dir, "submission");
