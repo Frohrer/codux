@@ -398,7 +398,7 @@ class Job {
             compile_errored = compile.code !== 0;
             if (!compile_errored) {
                 const old_box_dir = box.dir;
-                box = await this.#create_isolate_box();
+                box = await this.create_isolate_box();
                 await fs.rename(path.join(old_box_dir, "submission"), path.join(box.dir, "submission"));
             }
         }
@@ -444,7 +444,7 @@ class Job {
             job_queue.shift()();
         }
         await Promise.all(
-            this.#dirty_boxes.map(async(box) => {
+            this.dirty_boxes.map(async(box) => {
                 cp.exec(
                     `isolate --cleanup --cg --box-id=${box.id}`, // Updated flags
                     (error, stdout, stderr) => {
