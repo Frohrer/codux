@@ -78,7 +78,7 @@ class ProcessOutputManager {
 		return {
 			stdout: process.stdout.join("\n"),
 			stderr: process.stderr.join("\n"),
-			errors: process.errors.join("\n"), // Include errors in output
+			errors: process.errors.join("\n"),
 		};
 	}
 
