@@ -21,7 +21,7 @@ let job_queue = [];
 
 const get_next_box_id = () => ++box_id % MAX_BOX_ID;
 
-class Job {#
+class Job {
     dirty_boxes;
     constructor({ runtime, files, args, stdin, timeouts, cpu_times, memory_limits, dependencies = [], long_running }) {
         this.uuid = uuidv4();
@@ -86,7 +86,7 @@ class Job {#
         return Array.from(this.#dirty_boxes).map((box) => box.id);
     }
 
-    async# create_isolate_box() {
+    async create_isolate_box() {
         const box_id = get_next_box_id();
         const metadata_file_path = `/tmp/${box_id}-metadata.txt`;
         return new Promise((res, rej) => {
@@ -274,7 +274,7 @@ class Job {#
                         code = parse_int(value);
                         break;
                     case "exitsig":
-                        signal = globals.SIGNALS[parse_int(value)] ? ? null;
+                        signal = globals.SIGNALS[parse_int(value)] ?? null;
                         break;
                     case "message":
                         message = message || value;
