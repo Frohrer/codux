@@ -133,13 +133,16 @@ class WebEnabledJob extends Job {
         jobTimer.startStage(this.uuid, "execute");
         const localEventBus = event_bus || new EventEmitter();
 
+        let stdout = "";
+        let stderr = "";
+        let stage = "execute";
+
         try {
             const combinedEnv = {
                 ...this.runtime.env_vars,
                 ...this.additionalEnvVars,
             };
 
-            // Handle Streamlit specific setup and execution
             if (isStreamlit) {
                 // Create a proxy for this job
                 const proxyInfo = proxyManager.createProxy(this.uuid);
@@ -147,11 +150,16 @@ class WebEnabledJob extends Job {
                 this.proxyPath = proxyManager.getBaseUrl() + proxyInfo.path + "/";
 
                 if (this.dependencies && this.dependencies.length > 0) {
+                    stage = "install";
                     this.logger.debug(`Installing additional Python dependencies for Streamlit: ${this.dependencies.join(", ")}`);
                     const installResult = await this.installDependencies(box, localEventBus);
                     if (installResult && installResult.code !== 0) {
-                        // Stop if something went wrong in install
-                        throw new Error(`Failed to install dependencies: code=${installResult.code}, msg=${installResult.message}`);
+                        const error = new Error("Failed to install dependencies");
+                        error.stage = "install";
+                        error.code = installResult.code;
+                        error.stdout = installResult.stdout;
+                        error.stderr = installResult.stderr;
+                        throw error;
                     }
                 }
                 // Get the main file from the files array
@@ -170,8 +178,6 @@ class WebEnabledJob extends Job {
 
                 // Create error monitor
                 const monitor = new StreamlitErrorMonitor(this);
-                let stdout = "";
-                let stderr = "";
 
                 // Set up error collection
                 localEventBus.on("stdout", (data) => {
@@ -189,15 +195,16 @@ class WebEnabledJob extends Job {
                 });
 
                 try {
+                    stage = "execute";
                     this.logger.debug("Starting Streamlit process");
-
+                    
                     // Start the process
                     this.processPromise = this.safe_call(
                         box,
                         "run",
                         this.args,
-                        22200000, // 6.1 hour time limit
-                        21600000, // 6 hour CPU time limit
+                        22200000,
+                        21600000,
                         this.memory_limits.run,
                         localEventBus, { env: combinedEnv }
                     );
@@ -225,7 +232,7 @@ class WebEnabledJob extends Job {
                     if (this.proxyPath) {
                         proxyManager.removeProxy(this.uuid);
                     }
-                    // Include collected output in error
+                    error.stage = stage;
                     error.stdout = stdout;
                     error.stderr = stderr;
                     throw error;
@@ -256,21 +263,27 @@ class WebEnabledJob extends Job {
 
             return result;
         } catch (error) {
-            // Record failed process
+            // Enhance error with additional context
+            error.stage = stage;
+            error.stdout = stdout;
+            error.stderr = stderr;
+            error.language = this.runtime.language;
+            error.version = this.runtime.version.raw;
+            
+            // Record failed process with detailed error information
             processHistory.addProcess(this.uuid, {
                 language: this.runtime.language,
                 version: this.runtime.version.raw,
                 startTime: new Date(this.startTime),
                 status: "failed",
                 timing: jobTimer.getTimingReport(this.uuid),
-                error: error.message,
-                stdout: error.stdout,
-                stderr: error.stderr,
+                error: {
+                    message: error.message,
+                    stage: error.stage,
+                    stdout: error.stdout,
+                    stderr: error.stderr
+                }
             });
-
-            this.logger.error(`Error in execute: ${error.message}`);
-            if (error.stdout) this.logger.error(`stdout: ${error.stdout}`);
-            if (error.stderr) this.logger.error(`stderr: ${error.stderr}`);
 
             throw error;
         } finally {

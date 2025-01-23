@@ -208,6 +208,55 @@ components:
         timing:
           $ref: "#/components/schemas/TimingReport"
 
+    ExecutionError:
+      type: object
+      properties:
+        message:
+          type: string
+          description: High-level error message
+        error:
+          type: string
+          description: Detailed error message
+        execution_id:
+          type: string
+          description: Unique identifier for the execution
+        stages:
+          type: object
+          properties:
+            install:
+              type: object
+              properties:
+                stdout:
+                  type: string
+                stderr:
+                  type: string
+            execute:
+              type: object
+              properties:
+                stdout:
+                  type: string
+                stderr:
+                  type: string
+        details:
+          type: object
+          properties:
+            stage:
+              type: string
+              enum: [install, compile, execute]
+              description: Stage where the error occurred
+            code:
+              type: integer
+              description: Process exit code
+            signal:
+              type: string
+              description: Signal that terminated the process
+            stdout:
+              type: string
+              description: Standard output at time of error
+            stderr:
+              type: string
+              description: Standard error at time of error
+
 paths:
   /execute:
     post:
@@ -233,11 +282,11 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
         "500":
-          description: Server error
+          description: Execution failed
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"
+                $ref: "#/components/schemas/ExecutionError"
 
   /connect:
     get:
