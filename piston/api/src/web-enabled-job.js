@@ -52,6 +52,13 @@ class WebEnabledJob extends Job {
             return { code: 0, status: "success" };
         }
 
+        // Replace PIL with pillow if present
+        if (this.runtime.language === "python" || this.runtime.language === "streamlit") {
+            this.dependencies = this.dependencies.map(dep =>
+                dep.toLowerCase() === "pil" ? "pillow" : dep
+            );
+        }
+
         const packageInstallCommands = {
             python: (dependencies) => ["--disable-pip-version-check", "install", "--target=/box/submission", ...dependencies],
             streamlit: (dependencies) => ["--disable-pip-version-check", "install", "--target=/box/submission", ...dependencies],
