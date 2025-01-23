@@ -5,7 +5,7 @@ const { jobTimer } = require("./timing");
 const { processHistory } = require("./process-history");
 const EventEmitter = require("events");
 const StreamlitErrorMonitor = require("./streamlit-error-monitor");
-const processOutputManager = require("./process-output-manager");
+const { processOutputManager } = require("./process-output-manager");
 
 // Import the ProxyManager class (exported as a singleton in your code).
 const ProxyManager = require("./proxy-handler");
