@@ -181,6 +181,33 @@ components:
                   type: string
                 stderr:
                   type: string
+        run:
+          type: object
+          properties:
+            code:
+              type: integer
+              description: Process exit code
+            signal:
+              type: string
+              description: Signal that terminated the process, if any
+            stdout:
+              type: string
+              description: Standard output from the execution
+            stderr:
+              type: string
+              description: Standard error from the execution
+            output:
+              type: string
+              description: Combined stdout and stderr output
+            memory:
+              type: number
+              description: Peak memory usage in bytes
+            message:
+              type: string
+              description: Additional execution message if any
+            status:
+              type: string
+              description: Execution status
         webAppUrl:
           type: string
         execution_id:

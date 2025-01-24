@@ -384,6 +384,13 @@ router.post("/execute", async(req, res) => {
         let result = await job.execute(box, event_bus);
         const timingReport = jobTimer.endTiming(job.uuid);
 
+        // Ensure run object has the output
+        if (result.run) {
+            result.run.stdout = outputs.execute.stdout;
+            result.run.stderr = outputs.execute.stderr;
+            result.run.output = outputs.execute.stdout + outputs.execute.stderr;
+        }
+
         result = {
             ...result,
             execution_id: job.uuid,
