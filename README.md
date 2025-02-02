@@ -4,7 +4,7 @@ A secure code execution engine for running LLM-generated code.
 
 ## Overview
 
-codux extends the Piston engine to create a secure platform for executing publicly submitted code. Built with LLM integration in mind, it features:
+Kiln extends the Piston engine to create a secure platform for executing publicly submitted code. Built with LLM integration in mind, it features:
 
 - Secure code execution environment
 - Support for multiple language versions
@@ -14,13 +14,13 @@ codux extends the Piston engine to create a secure platform for executing public
 
 ## Getting Started
 
-codux will build all supported runtimes on first startup, therefore expect a 5-10 minute wait the first time you run it.
+Kiln will build all supported runtimes on first startup, therefore expect a 5-10 minute wait the first time you run it.
 
 1. **Clone the Repository**
 
    ```bash
-   git clone https://github.com/frohrer/codux.git
-   cd codux
+   git clone https://github.com/frohrer/kiln.git
+   cd kiln
    ```
 
 2. **Build Runtimes**
