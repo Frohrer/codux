@@ -5,7 +5,7 @@ A secure code execution engine for running LLM-generated code.
 
 ## Overview
 
-Kiln extends the Piston engine to create a secure platform for executing publicly submitted code. Built with LLM integration in mind, it features:
+Kiln extends the kiln engine to create a secure platform for executing publicly submitted code. Built with LLM integration in mind, it features:
 
 - Secure code execution environment
 - Support for multiple language versions

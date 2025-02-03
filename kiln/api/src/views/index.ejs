@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Piston Package Manager and IDE</title>
+    <title>kiln Package Manager and IDE</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -80,7 +80,7 @@
 </head>
 <body>
 
-<h1>Piston Package Manager</h1>
+<h1>kiln Package Manager</h1>
 
 <h2>Install New Package</h2>
 <form id="install-form">
@@ -287,8 +287,8 @@
         }
     }
 
-    // Map Piston languages to Monaco languages
-    function getMonacoLanguage(pistonLanguage) {
+    // Map kiln languages to Monaco languages
+    function getMonacoLanguage(kilnLanguage) {
         const languageMap = {
             'assembly': 'asm',
             'bash': 'shell',
@@ -322,7 +322,7 @@
             'typescript': 'typescript',
             // Add more mappings as needed
         };
-        return languageMap[pistonLanguage.toLowerCase()] || 'plaintext';
+        return languageMap[kilnLanguage.toLowerCase()] || 'plaintext';
     }
 
     // Function to extract dependencies from code
