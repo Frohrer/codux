@@ -2,7 +2,7 @@ const EventEmitter = require("events");
 
 class ProcessOutputManager {
 	constructor() {
-		this.outputs = new Map(); // jobId -> {stdout: string[], stderr: string[], subscribers: Set}
+		this.outputs = new Map(); // jobId -> {stdout: string[], stderr: string[], errors: string[], subscribers: Set}
 		this.MAX_OUTPUT_LENGTH = 1000; // Maximum number of lines to keep in memory
 	}
 
@@ -11,6 +11,7 @@ class ProcessOutputManager {
 			this.outputs.set(jobId, {
 				stdout: [],
 				stderr: [],
+				errors: [], // Add errors array
 				subscribers: new Set(),
 				emitter: new EventEmitter(),
 			});
@@ -26,11 +27,16 @@ class ProcessOutputManager {
 			.filter((line) => line.length > 0);
 
 		// Add to appropriate output buffer
-		process[type].push(...lines);
-
-		// Trim if exceeding max length
-		if (process[type].length > this.MAX_OUTPUT_LENGTH) {
-			process[type] = process[type].slice(-this.MAX_OUTPUT_LENGTH);
+		if (type === "error") {
+			process.errors.push(...lines);
+			if (process.errors.length > this.MAX_OUTPUT_LENGTH) {
+				process.errors = process.errors.slice(-this.MAX_OUTPUT_LENGTH);
+			}
+		} else {
+			process[type].push(...lines);
+			if (process[type].length > this.MAX_OUTPUT_LENGTH) {
+				process[type] = process[type].slice(-this.MAX_OUTPUT_LENGTH);
+			}
 		}
 
 		// Notify all subscribers
@@ -72,6 +78,7 @@ class ProcessOutputManager {
 		return {
 			stdout: process.stdout.join("\n"),
 			stderr: process.stderr.join("\n"),
+			errors: process.errors.join("\n"),
 		};
 	}
 
