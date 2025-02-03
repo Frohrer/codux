@@ -1,8 +1,8 @@
 version: '3.2'
 services:
     api:
-        build: ./piston/api/.
-        container_name: piston_api
+        build: ./kiln/api/.
+        container_name: kiln_api
         restart: unless-stopped
         cgroup: host
         stop_grace_period: 10s
@@ -23,7 +23,7 @@ services:
         networks:
             - piston-network
     repo:
-        build: ./piston/repo/.
+        build: ./kiln/repo/.
         container_name: piston_repo
         privileged: true
         ports:
