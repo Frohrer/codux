@@ -15,8 +15,14 @@ app = Flask(__name__)
 
 # setup a secret key, required by sessions
 app.secret_key = os.environ.get("FLASK_SECRET_KEY") or "development_key"
-API_BASE = os.environ.get("API_BASE")
 
+# API configuration
+API_BASE = 'https://code-api.frohrer.com/api/v2'
+API_HEADERS = {
+    "Content-Type": "application/json",
+    "CF-Access-Client-Id": "331ebaf1a65b2d26ef48df7313337f44.access",
+    "CF-Access-Client-Secret": "6e6628f68454ac2bde2ba36fe7d57636983050c5aa151d9e90a1cf18bca7f9f8"
+}
 
 @app.route('/')
 def index():
@@ -28,12 +34,59 @@ def index():
         logger.error(f"Error rendering index page: {e}", exc_info=True)
         return "Internal Server Error", 500
 
+@app.route('/ide')
+def ide():
+    """Render the IDE page."""
+    try:
+        logger.debug("Rendering IDE page")
+        return render_template('ide.html')
+    except Exception as e:
+        logger.error(f"Error rendering IDE page: {e}", exc_info=True)
+        return "Internal Server Error", 500
+
+@app.route('/api/runtimes')
+def get_runtimes():
+    """Get available runtime environments."""
+    try:
+        response = requests.get(f'{API_BASE}/runtimes', headers=API_HEADERS, timeout=5)
+        response.raise_for_status()
+        return jsonify(response.json())
+    except requests.exceptions.RequestException as e:
+        logger.error(f"API request error: {str(e)}", exc_info=True)
+        return jsonify({"error": str(e)}), 503
+    except Exception as e:
+        logger.error(f"Error fetching runtimes: {e}", exc_info=True)
+        return jsonify({"error": "Failed to fetch runtimes"}), 500
+
+@app.route('/api/execute', methods=['POST'])
+def execute_code():
+    """Execute code in the specified runtime environment."""
+    try:
+        request_data = request.get_json()
+        logger.debug(f"Executing code with data: {request_data}")
+
+        response = requests.post(
+            f'{API_BASE}/execute',
+            headers=API_HEADERS,
+            json=request_data,
+            timeout=30
+        )
+        response.raise_for_status()
+        return jsonify(response.json())
+    except requests.exceptions.RequestException as e:
+        logger.error(f"API request error: {str(e)}", exc_info=True)
+        return jsonify({"error": str(e)}), 503
+    except Exception as e:
+        logger.error(f"Error executing code: {e}", exc_info=True)
+        return jsonify({"error": "Failed to execute code"}), 500
+
 @app.route('/api/metrics')
 def get_metrics():
     """Fetch and return system metrics."""
     try:
         logger.debug(f"Fetching metrics from {API_BASE}/metrics")
-        response = requests.get(f'{API_BASE}/metrics', timeout=5)
+        logger.debug(f"Using headers: {API_HEADERS}")
+        response = requests.get(f'{API_BASE}/metrics', headers=API_HEADERS, timeout=5)
         response.raise_for_status()
         data = response.json()
         logger.debug(f"Received metrics data: {data}")
@@ -50,7 +103,7 @@ def get_process_timing(process_id):
     """Get detailed timing information for a specific process."""
     try:
         logger.debug(f"Fetching timing data for process {process_id}")
-        response = requests.get(f'{API_BASE}/process/{process_id}/timing', timeout=5)
+        response = requests.get(f'{API_BASE}/process/{process_id}/timing', headers=API_HEADERS, timeout=5)
         response.raise_for_status()
         return jsonify(response.json())
     except requests.exceptions.ConnectionError as e:
@@ -70,7 +123,7 @@ def get_process_info(process_id):
     """Get detailed information about a specific process."""
     try:
         logger.debug(f"Fetching process info for {process_id}")
-        response = requests.get(f'{API_BASE}/process/{process_id}', timeout=5)
+        response = requests.get(f'{API_BASE}/process/{process_id}', headers=API_HEADERS, timeout=5)
         response.raise_for_status()
         return jsonify(response.json())
     except requests.exceptions.ConnectionError as e:
@@ -89,14 +142,7 @@ def get_process_info(process_id):
 def terminate_process(process_id):
     """Terminate a running process."""
     try:
-        headers = {
-            'Content-Type': 'application/json'
-        }
-        response = requests.delete(
-            f'{API_BASE}/process/{process_id}',
-            headers=headers,
-            timeout=5
-        )
+        response = requests.delete(f'{API_BASE}/process/{process_id}', headers=API_HEADERS, timeout=5)
         response.raise_for_status()
         return jsonify({"message": "Process terminated successfully"})
     except requests.exceptions.ConnectionError as e:
@@ -130,6 +176,7 @@ def get_history():
         # Make the API request
         response = requests.get(
             f'{API_BASE}/history',
+            headers=API_HEADERS,
             timeout=5
         )
         response.raise_for_status()
@@ -177,7 +224,7 @@ def get_history():
 def get_execution_details(execution_id):
     """Get detailed information about a specific execution."""
     try:
-        response = requests.get(f'{API_BASE}/history/{execution_id}', timeout=5)
+        response = requests.get(f'{API_BASE}/history/{execution_id}', headers=API_HEADERS, timeout=5)
         response.raise_for_status()
         return jsonify(response.json())
     except requests.exceptions.ConnectionError as e:

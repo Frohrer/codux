@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid px-4 py-3">
+    <div class="row g-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-dark border-0 d-flex justify-content-between align-items-center py-3">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-code me-2 text-primary"></i>
+                        Code Editor
+                    </h5>
+                    <div class="d-flex gap-3 align-items-center">
+                        <select class="form-select form-select-sm bg-dark text-light border-secondary" id="languageSelect" style="width: 150px;">
+                            <option value="" selected disabled>Select Language</option>
+                            <!-- Languages will be populated via JavaScript -->
+                        </select>
+                        <button class="btn btn-primary btn-sm px-4" id="runCode">
+                            <i class="fas fa-play me-2"></i>
+                            Run Code
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="row g-0">
+                        <div class="col-12">
+                            <div id="editor" style="height: 500px; width: 100%; border-bottom: 1px solid #2d2d2d;"></div>
+                        </div>
+                        <div class="col-12">
+                            <div class="p-3">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h6 class="mb-0 text-muted">
+                                        <i class="fas fa-terminal me-2"></i>
+                                        Output
+                                        <div class="spinner-border spinner-border-sm text-muted ms-2 d-none" id="outputSpinner"></div>
+                                    </h6>
+                                    <!-- Web App URL section -->
+                                    <div id="webAppUrlContainer" class="d-none">
+                                        <span class="text-muted me-2">Web Application URL:</span>
+                                        <a id="webAppUrl" href="#" target="_blank" class="text-primary text-decoration-none">
+                                            <i class="fas fa-external-link-alt me-1"></i>
+                                            <span class="url-text"></span>
+                                        </a>
+                                    </div>
+                                </div>
+                                <pre id="output" class="bg-dark p-3 rounded mb-0" style="max-height: 200px; overflow-y: auto; font-size: 0.9rem;"></pre>
+
+                                <!-- Execution Details -->
+                                <div id="executionDetails" class="mt-4 d-none">
+                                    <h6 class="text-muted mb-3">
+                                        <i class="fas fa-chart-line me-2"></i>
+                                        Execution Details
+                                    </h6>
+
+                                    <!-- Timing Information -->
+                                    <div class="row g-3 mb-3">
+                                        <div class="col-md-4">
+                                            <div class="p-3 bg-dark rounded">
+                                                <h6 class="text-muted mb-2">Total Duration</h6>
+                                                <div id="totalDuration" class="h5 mb-0">-</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="p-3 bg-dark rounded">
+                                                <h6 class="text-muted mb-2">CPU Time</h6>
+                                                <div id="cpuTime" class="h5 mb-0">-</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="p-3 bg-dark rounded">
+                                                <h6 class="text-muted mb-2">Memory Usage</h6>
+                                                <div id="memoryUsage" class="h5 mb-0">-</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Stage Details -->
+                                    <div class="accordion" id="stagesAccordion">
+                                        <!-- Install Stage -->
+                                        <div class="accordion-item bg-dark">
+                                            <h2 class="accordion-header">
+                                                <button class="accordion-button collapsed bg-dark text-light" type="button" data-bs-toggle="collapse" data-bs-target="#installStage">
+                                                    Install Stage
+                                                </button>
+                                            </h2>
+                                            <div id="installStage" class="accordion-collapse collapse" data-bs-parent="#stagesAccordion">
+                                                <div class="accordion-body">
+                                                    <div id="installMetrics"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Execute Stage -->
+                                        <div class="accordion-item bg-dark">
+                                            <h2 class="accordion-header">
+                                                <button class="accordion-button collapsed bg-dark text-light" type="button" data-bs-toggle="collapse" data-bs-target="#executeStage">
+                                                    Execute Stage
+                                                </button>
+                                            </h2>
+                                            <div id="executeStage" class="accordion-collapse collapse" data-bs-parent="#stagesAccordion">
+                                                <div class="accordion-body">
+                                                    <div id="executeMetrics"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.23.4/ace.js"></script>
+<script src="{{ url_for('static', filename='js/ide.js') }}"></script>
+{% endblock %}
