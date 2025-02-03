@@ -67,8 +67,8 @@ _Documentation in progress_
 | python     | 3.10.0  | python     | ❌                   |
 | python     | 3.11.11 | python     | ✅                   |
 | python     | 3.11.0  | streamlit  | ✅                   |
-| python     | 3.12.8  | python     | ❌                   |
-| python     | 3.13.1  | python     | ❌                   |
+| python     | 3.12.8  | python     | ✅                   |
+| python     | 3.13.1  | python     | ✅                   |
 | bash       | 5.2.0   | bash       | ✅                   |
 | go         | 1.16.2  | go         | ✅                   |
 | typescript | 4.2.3   | typescript | ❌                   |
